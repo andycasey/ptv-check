@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.ptv.vic.gov.au)",
+      "WebFetch(domain:www.vic.gov.au)",
+      "WebFetch(domain:discover.data.vic.gov.au)",
+      "WebFetch(domain:ptv.vic.gov.au)",
+      "WebFetch(domain:timetableapi.ptv.vic.gov.au)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:stevebennett.co)",
+      "WebFetch(domain:transport.vic.gov.au)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:web.archive.org)",
+      "WebFetch(domain:www.reddit.com)",
+      "Bash(node find-stops.mjs:*)",
+      "Bash(node find-routes.mjs:*)",
+      "Bash(node find-733-stops.mjs:*)",
+      "Bash(node check-connections.mjs:*)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(pkill:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

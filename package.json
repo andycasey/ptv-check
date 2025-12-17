@@ -1,0 +1,12 @@
+{
+  "name": "ptv-train-bus-helper",
+  "version": "1.0.0",
+  "description": "Helps decide which station to get off at for optimal bus connection to Monash",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

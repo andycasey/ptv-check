@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Train to Bus - Monash</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <div class="max-w-md mx-auto p-4">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-bold">Train → Bus</h1>
+      <div class="flex items-center gap-2">
+        <span id="updateTime" class="text-sm text-gray-400"></span>
+        <button id="refreshBtn" onclick="fetchData()" class="p-2 rounded-full hover:bg-gray-700 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading" class="hidden">
+      <div class="bg-gray-800 rounded-xl p-6 mb-4">
+        <div class="loading text-center text-gray-400">Loading departures...</div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="hidden">
+      <div class="bg-red-900/50 border border-red-700 rounded-xl p-4 mb-4">
+        <p class="font-semibold text-red-300">Error</p>
+        <p id="errorMessage" class="text-sm text-red-200"></p>
+      </div>
+    </div>
+
+    <!-- Recommendation Card -->
+    <div id="recommendation" class="hidden">
+      <div class="bg-gradient-to-br from-green-900 to-green-800 rounded-xl p-5 mb-4 border border-green-700">
+        <div class="text-sm text-green-300 mb-2 font-medium">RECOMMENDATION</div>
+        <div class="text-2xl font-bold mb-1" id="recStation">-</div>
+        <div class="text-lg text-green-100" id="recBus">-</div>
+        <div class="text-sm text-green-200 mt-2" id="recArrival">-</div>
+      </div>
+    </div>
+
+    <!-- Train Info -->
+    <div id="trainInfo" class="hidden">
+      <div class="bg-gray-800 rounded-xl p-4 mb-4">
+        <div class="text-sm text-gray-400 mb-2">Next train arrives at Mount Waverley</div>
+        <div class="text-xl font-bold" id="trainTime">-</div>
+      </div>
+    </div>
+
+    <!-- All Options -->
+    <div id="options" class="hidden">
+      <h2 class="text-sm font-semibold text-gray-400 mb-3">ALL OPTIONS</h2>
+      <div id="optionsList" class="space-y-3">
+        <!-- Options will be inserted here -->
+      </div>
+    </div>
+
+    <!-- No Options -->
+    <div id="noOptions" class="hidden">
+      <div class="bg-gray-800 rounded-xl p-6 text-center">
+        <p class="text-gray-400">No suitable bus connections found.</p>
+        <p class="text-sm text-gray-500 mt-2">Try refreshing in a few minutes.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = '/api/departures';
+    let refreshInterval;
+
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function formatRelative(isoString) {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = date - now;
+      const diffMins = Math.round(diffMs / 60000);
+
+      if (diffMins < 1) return 'now';
+      if (diffMins === 1) return 'in 1 min';
+      return `in ${diffMins} mins`;
+    }
+
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('recommendation').classList.add('hidden');
+      document.getElementById('trainInfo').classList.add('hidden');
+      document.getElementById('options').classList.add('hidden');
+      document.getElementById('noOptions').classList.add('hidden');
+    }
+
+    function showError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('errorMessage').textContent = message;
+    }
+
+    function showData(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+
+      // Update time
+      document.getElementById('updateTime').textContent = formatTime(data.timestamp);
+
+      // Show train info
+      if (data.nextTrain) {
+        document.getElementById('trainInfo').classList.remove('hidden');
+        const trainTime = formatTime(data.nextTrain.atMountWaverley);
+        const trainRelative = formatRelative(data.nextTrain.atMountWaverley);
+        document.getElementById('trainTime').textContent = `${trainTime} (${trainRelative})`;
+      }
+
+      // Show recommendation
+      if (data.recommendation) {
+        document.getElementById('recommendation').classList.remove('hidden');
+        document.getElementById('recStation').textContent = `Get off at ${data.recommendation.station}`;
+        document.getElementById('recBus').textContent = `Take ${data.recommendation.bus.route} at ${formatTime(data.recommendation.bus.departure)}`;
+        document.getElementById('recArrival').textContent = `Arrives Monash ~${formatTime(data.recommendation.arrivalAtMonash)} (${data.recommendation.totalMinutes} mins total)`;
+      }
+
+      // Show all options
+      if (data.allOptions && data.allOptions.length > 0) {
+        document.getElementById('options').classList.remove('hidden');
+        document.getElementById('noOptions').classList.add('hidden');
+
+        const optionsList = document.getElementById('optionsList');
+        optionsList.innerHTML = '';
+
+        // Group by station
+        const stations = ['Mount Waverley', 'Syndal', 'Glen Waverley'];
+        const trainTimes = {
+          'Mount Waverley': data.nextTrain?.atMountWaverley,
+          'Syndal': data.nextTrain?.atSyndal,
+          'Glen Waverley': data.nextTrain?.atGlenWaverley,
+        };
+
+        for (const station of stations) {
+          const stationOptions = data.allOptions.filter(o => o.station === station);
+          if (stationOptions.length === 0) continue;
+
+          const isRecommended = data.recommendation?.station === station;
+
+          const card = document.createElement('div');
+          card.className = `bg-gray-800 rounded-lg p-4 ${isRecommended ? 'ring-2 ring-green-500' : ''}`;
+
+          const trainTime = trainTimes[station] ? formatTime(trainTimes[station]) : '-';
+
+          let busesHtml = stationOptions.map(opt => {
+            const isThisRecommended = data.recommendation?.bus.route === opt.bus.route &&
+                                       data.recommendation?.station === opt.station;
+            return `
+              <div class="flex items-center justify-between text-sm ${isThisRecommended ? 'text-green-300' : 'text-gray-300'}">
+                <span>${opt.bus.route} @ ${formatTime(opt.bus.departure)}</span>
+                <span>→ Monash ~${formatTime(opt.arrivalAtMonash)}</span>
+              </div>
+            `;
+          }).join('');
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold ${isRecommended ? 'text-green-400' : ''}">${station}</span>
+              <span class="text-sm text-gray-400">train ${trainTime}</span>
+            </div>
+            <div class="space-y-1">
+              ${busesHtml}
+            </div>
+          `;
+
+          optionsList.appendChild(card);
+        }
+      } else {
+        document.getElementById('options').classList.add('hidden');
+        document.getElementById('noOptions').classList.remove('hidden');
+      }
+    }
+
+    async function fetchData() {
+      showLoading();
+
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        if (data.error && !data.allOptions) {
+          showError(data.message || data.error);
+          return;
+        }
+
+        showData(data);
+      } catch (err) {
+        showError('Failed to connect to server. Check your internet connection.');
+        console.error(err);
+      }
+    }
+
+    // Initial fetch
+    fetchData();
+
+    // Auto-refresh every 30 seconds
+    refreshInterval = setInterval(fetchData, 30000);
+
+    // Visibility handling - refresh when tab becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    });
+  </script>
+</body>
+</html>
