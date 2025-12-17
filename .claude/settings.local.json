@@ -27,7 +27,16 @@
       "Bash(python3:*)",
       "Bash(pkill:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(vercel login)",
+      "Bash(gh repo create:*)",
+      "Bash(brew install:*)",
+      "Bash(gh auth:*)",
+      "Bash(vercel --yes)",
+      "Bash(vercel:*)",
+      "Bash(cat:*)",
+      "Bash(git push)"
     ]
   }
 }
